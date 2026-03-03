@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UART Automation Hub</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; padding: 20px; }
+        .card { background: #252525; padding: 20px; border-radius: 12px; border: 1px solid #444; margin-bottom: 20px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; }
+        .tab-btn { background: #333; color: #888; border: none; padding: 10px 20px; cursor: pointer; border-radius: 8px 8px 0 0; }
+        .tab-btn.active { background: #252525; color: #007bff; border-bottom: 2px solid #007bff; }
+        .viewer { background: #000; padding: 15px; border-radius: 0 0 8px 8px; border: 1px solid #444; min-height: 200px; font-family: monospace; white-space: pre-wrap; font-size: 13px; }
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>UART Automation Tool</h2>
+        <button onclick="fetchPorts()" style="background:#28a745"> Scan Hardware</button>
+        <div id="port-list" style="margin-top:15px;"></div>
+    </div>
+
+    <div class="tab-buttons" style="display:flex; justify-content:space-between; max-width: 800px; margin: 0 auto;">
+        <div>
+            <button class="tab-btn active" id="btn-json" onclick="switchTab('json')">JSON DATA</button>
+            <button class="tab-btn" id="btn-log" onclick="switchTab('log')">SYSTEM LOG</button>
+        </div>
+        <button onclick="clearLogs()" style="background:#dc3545; height: 30px; font-size: 11px;">Clear History</button>
+    </div>
+    <div id="viewer" class="viewer" style="max-width: 800px; margin: 0 auto; color: #0f0;">Ready...</div>
+
+    <script>
+        let currentTab = 'json';
+
+        async function fetchPorts() {
+            const res = await fetch('/api/scan');
+            const data = await res.json();
+            document.getElementById('port-list').innerHTML = data.map(p => `
+                <div style="background:#333; padding:10px; margin-bottom:5px; border-radius:8px; display:flex; justify-content:space-between;">
+                    <span><small class="badge" style="background:${p.type==='HARDWARE'?'#28a745':'#17a2b8'}">${p.type}</small> ${p.device}</span>
+                    <button onclick="runTest('${p.device}')">Run Test</button>
+                </div>
+            `).join('');
+        }
+
+        async function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${tab}`).classList.add('active');
+            refreshViewer();
+        }
+
+        async function refreshViewer() {
+            const v = document.getElementById('viewer');
+            const endpoint = currentTab === 'json' ? '/api/latest_report' : '/api/system_logs';
+            const res = await fetch(endpoint);
+            const data = currentTab === 'json' ? await res.json() : await res.text();
+            v.innerHTML = currentTab === 'json' ? JSON.stringify(data, null, 4) : data;
+            v.style.color = currentTab === 'json' ? '#ce9178' : '#d4d4d4';
+        }
+
+        async function runTest(port) {
+            document.getElementById('viewer').innerHTML = `Testing ${port}...`;
+            await fetch(`/api/test?port=${encodeURIComponent(port)}`, {method:'POST'});
+            refreshViewer();
+        }
+
+        async function clearLogs() {
+            if(confirm("Wipe all logs?")) {
+                await fetch('/api/clear_logs', {method:'DELETE'});
+                refreshViewer();
+            }
+        }
+    </script>
+</body>
+</html>
