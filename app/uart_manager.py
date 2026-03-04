@@ -107,6 +107,18 @@ class UARTManager:
         return report
 
     def get_history(self):
-        if not os.path.exists(self.history_file): return []
+        if not os.path.exists(self.history_file): 
+            return []
+        
+        history = []
         with open(self.history_file, "r") as f:
-            return [json.loads(line) for line in f if line.strip()]
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    history.append(json.loads(line))
+                except json.JSONDecodeError:
+                    # Skip corrupted lines instead of crashing the whole app
+                    self.logger.warning("Skipping corrupted log line.")
+                    continue
+        return history
