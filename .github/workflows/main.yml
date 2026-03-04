@@ -6,7 +6,7 @@ jobs:
   test_and_coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -20,7 +20,7 @@ jobs:
           # Runs all tests and verifies reliability coverage
           pytest --cov=app tests/ --cov-report=xml
       - name: Upload Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: regression-report
           path: coverage.xml
