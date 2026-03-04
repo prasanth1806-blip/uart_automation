@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>UART Side-by-Side Console</title>
+    <title>UART Console</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -37,28 +37,28 @@
 </head>
 <body>
     <div class="controls">
-        <div class="brand"><h2>UART AUTO</h2></div>
+        <div class="brand"><h2>UART AUTOMTION TOOL</h2></div>
         <div class="port-actions">
-            <button class="btn-scan" onclick="scan()">⟳ SCAN</button>
+            <button class="btn-scan" onclick="scan()"> SCAN</button>
             <button class="btn-run-all" onclick="runAll()"> RUN ALL</button>
             <div id="ports" style="display:flex; gap:8px;"></div>
         </div>
-        <button class="btn-clear" onclick="clearAll()">✕ WIPE LOGS</button>
+        <button class="btn-clear" onclick="clearAll()"> WIPE LOGS</button>
     </div>
 
     <div class="main-view">
         <div class="terminal-container">
             <div class="terminal-header" style="background:#ecfdf5; color:#065f46">
                 System Terminal (Live)
-                <button class="btn-download" onclick="downloadLogs()">⬇ Download</button>
+                <button class="btn-download" onclick="downloadLogs()"> Download</button>
             </div>
-            <div id="log-view" class="viewer">Initializing system...</div>
+            <div id="log-view" class="viewer">Initializing system....</div>
         </div>
 
         <div class="terminal-container">
             <div class="terminal-header" style="background:#fffbeb; color:#92400e">
                 Test History (JSON)
-                <button class="btn-download" onclick="downloadJSON()">⬇ Download</button>
+                <button class="btn-download" onclick="downloadJSON()"> Download</button>
             </div>
             <div id="json-view" class="viewer">[]</div>
         </div>
