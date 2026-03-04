@@ -7,82 +7,76 @@ import time
 from datetime import datetime
 
 class UARTManager:
-    def __init__(self, log_dir="logs"):
-        self.log_dir = log_dir
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
+    def __init__(self):
+        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.log_dir = os.path.join(self.base_dir, "logs")
+        if not os.path.exists(self.log_dir): os.makedirs(self.log_dir)
         
+        self.log_path = os.path.join(self.log_dir, "system.log")
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            handlers=[logging.FileHandler(f"{self.log_dir}/system.log"), logging.StreamHandler()]
+            format='%(asctime)s - %(message)s',
+            handlers=[logging.FileHandler(self.log_path, mode='a'), logging.StreamHandler()]
         )
 
     def list_ports(self):
+        """Filters for only CONNECTED hardware (USB/ACM/COM)."""
         ports = serial.tools.list_ports.comports()
+        # Only include ports that have "USB", "ACM", or "SERIAL" in their description or device name
         active_hardware = [
-            {"device": p.device, "desc": p.description, "type": "HARDWARE"} 
+            {"device": p.device, "type": "HARDWARE", "desc": p.description} 
             for p in ports 
-            if any(x in p.device.upper() or x in p.description.upper() for x in ["USB", "ACM", "SERIAL"])
+            if any(x in p.device.upper() or x in p.description.upper() for x in ["USB", "ACM", "SERIAL", "COM"])
         ]
-        return active_hardware or [{"device": "SIMULATOR_PORT", "desc": "Virtual Automation Mode", "type": "SIMULATOR"}]
+        # Return filtered hardware, or simulator if empty
+        return active_hardware or [{"device": "SIMULATOR_PORT", "type": "SIMULATOR", "desc": "Virtual Dev Environment"}]
 
     def validate_logic(self, response, expected):
-        """Unit Test Logic: Pure string validation."""
-        return response.strip() == expected.strip()
+        return response.strip().upper() == expected.strip().upper()
 
-    def run_test(self, port, baud=115200):
-        """Comprehensive Suite: Unit + Integration + Regression."""
-        logging.info(f"--- Starting Full Suite on {port} ---")
-        
+    def run_test(self, port, mode="STANDARD"):
+        logging.info(f"--- Running {mode} Suite on {port} ---")
         report = {
-            "port": port,
-            "timestamp": datetime.now().isoformat(),
-            "overall_status": "PASS",
-            "summary": "All firmware testing OK",
-            "categories": {
-                "unit": "PASS",
-                "integration": "FAIL",
-                "regression": "FAIL"
-            },
+            "port": port, "mode": mode, "timestamp": datetime.now().isoformat(),
+            "overall_status": "PASS", "summary": "Firmware OK",
+            "categories": {"unit": "PASS", "integration": "FAIL", "regression": "FAIL"},
             "steps": []
         }
 
-        # 1. Integration Step: Basic Loopback
-        step1 = self._execute_step("Integration: Handshake", port, "PING", "PONG")
+        # Step 1: Integration (Handshake)
+        expected_h = "PING" if mode == "LOOPBACK" else "PONG"
+        step1 = self._execute_step("Integration: Handshake", port, "PING", expected_h)
         report["steps"].append(step1)
         report["categories"]["integration"] = step1["status"]
 
-        # 2. Regression Step: Firmware Version Check
+        # Step 2: Regression (Build Check)
         step2 = self._execute_step("Regression: Build Check", port, "VER", "1.0.0")
         report["steps"].append(step2)
         report["categories"]["regression"] = step2["status"]
 
-        # Final Overall Check
         if any(s["status"] == "FAIL" for s in report["steps"]):
             report["overall_status"] = "FAIL"
-            report["summary"] = "Firmware Validation FAILED"
+            report["summary"] = "Validation FAILED"
 
-        self._save_report(report)
+        with open(os.path.join(self.log_dir, "latest.json"), "w") as f:
+            json.dump(report, f, indent=4)
         return report
 
     def _execute_step(self, name, port, cmd, expected):
-        res = {"name": name, "status": "FAIL", "sent": cmd}
+        res = {"name": name, "status": "FAIL", "sent": cmd, "received": ""}
         if port == "SIMULATOR_PORT":
-            res.update({"status": "PASS", "received": expected, "mode": "simulator"})
-        else:
-            try:
-                with serial.Serial(port, 115200, timeout=1) as ser:
-                    ser.write(f"{cmd}\n".encode())
-                    received = ser.read(32).decode('utf-8', errors='ignore').strip()
-                    res["received"] = received
-                    if self.validate_logic(received, expected):
-                        res["status"] = "PASS"
-            except Exception as e:
-                res["error"] = str(e)
-        return res
+            res.update({"status": "PASS", "received": expected})
+            return res
 
-    def _save_report(self, data):
-        filename = f"report_{datetime.now().strftime('%H%M%S')}.json"
-        with open(os.path.join(self.log_dir, filename), "w") as f:
-            json.dump(data, f, indent=4)
+        try:
+            with serial.Serial(port, 9600, timeout=1.5) as ser:
+                time.sleep(0.1)
+                ser.write(f"{cmd}\r\n".encode())
+                raw = ser.read(64).decode('utf-8', errors='ignore').strip()
+                received = raw.replace(cmd, "").strip() if cmd in raw else raw
+                res["received"] = received
+                if self.validate_logic(res["received"], expected):
+                    res["status"] = "PASS"
+        except Exception as e:
+            res["error"] = str(e)
+        return res

@@ -1,25 +1,24 @@
 #!/bin/bash
-
 echo "------------------------------------------"
-echo " UART Hardware Automation - Secure Boot"
+echo " UART AUTOMATION - SYSTEM PRE-FLIGHT"
 echo "------------------------------------------"
 
-# Ensure venv is active (optional, remove if not using venv)
-# source venv/bin/activate
+# 1. Fix Permissions Automatically
+echo "[1/4] Checking USB Permissions..."
+sudo usermod -a -G dialout $USER
+sudo chmod 666 /dev/ttyUSB* 2>/dev/null || echo "No USB devices found yet."
 
+# 2. Fix Linux System Conflicts (Common for CH340/FTDI)
+echo "[2/4] Disabling common UART blockers (brltty)..."
+sudo systemctl stop brltty-udev.service 2>/dev/null
+sudo systemctl mask brltty-udev.service 2>/dev/null
+
+# 3. Run Coverage Suite
+echo "[3/4] Running Reliability Suite (Pytest-Cov)..."
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 mkdir -p logs
+python3 -m pytest --cov=app tests/ --cov-report=term-missing
 
-echo "[1/3] Running Regression Suite + Coverage Report..."
-# Generates a coverage report in the terminal
-pytest --cov=app tests/ --cov-report=term-missing
-
-echo "[2/3] Checking Port Permissions..."
-if groups | grep -q "\bdialout\b"; then
-    echo " Permissions: OK"
-else
-    echo " Warning: User not in 'dialout' group. Hardware access may fail."
-fi
-
-echo "[3/3] Launching Dashboard..."
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# 4. Launch Hub
+echo "[4/4] Launching Dashboard on http://localhost:8000"
+python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

@@ -1,17 +1,15 @@
 import pytest
 from app.uart_manager import UARTManager
 
-def test_flexible_port_logic():
+def test_logic_validation():
     manager = UARTManager()
-    ports = manager.list_ports()
-    
-    # The list should never be empty now
-    assert len(ports) > 0
-    # If it's a simulator, it must have the correct name
-    if ports[0]["type"] == "SIMULATOR":
-        assert ports[0]["device"] == "SIMULATOR_PORT"
+    # Unit Test: Logic check
+    assert manager.validate_logic("PONG", "PONG") is True
+    assert manager.validate_logic("FAIL", "PONG") is False
 
 def test_simulator_execution():
     manager = UARTManager()
+    # Integration/Regression Test via Simulator
     result = manager.run_test("SIMULATOR_PORT")
-    assert result["status"] == "PASS"
+    assert result["overall_status"] == "PASS"
+    assert result["categories"]["integration"] == "PASS"

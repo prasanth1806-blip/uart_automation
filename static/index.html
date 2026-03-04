@@ -1,111 +1,126 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>UART Automation Pro</title>
+    <title>UART Validation Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .terminal { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 15px; border-radius: 8px; height: 300px; overflow-y: auto; font-size: 12px; border: 1px solid #333; }
-        .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; }
+        .terminal { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 15px; border-radius: 8px; height: 300px; overflow-y: auto; font-size: 11px; border: 1px solid #333; }
     </style>
 </head>
-<body class="bg-[#121212] text-gray-200 p-8">
+<body class="bg-[#0f1115] text-gray-200 p-8">
     <div class="max-w-6xl mx-auto">
         <div class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
             <h1 class="text-3xl font-bold text-blue-500">UART <span class="text-white">Validation Hub</span></h1>
-            <div class="flex gap-4">
-                <button onclick="fetchPorts()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded shadow-lg transition">Scan Hardware</button>
-                <button onclick="clearLogs()" class="bg-red-900/30 text-red-500 border border-red-900 px-4 py-2 rounded hover:bg-red-900 transition text-sm">Clear History</button>
+            <div class="flex gap-3">
+                <button onclick="clearLogs()" class="bg-red-900/30 text-red-500 border border-red-800 px-4 py-2 rounded text-xs font-bold hover:bg-red-800 hover:text-white transition">CLEAR LOGS</button>
+                <button onclick="fetchPorts()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded font-bold transition">SCAN PORTS</button>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="space-y-4">
-                <h3 class="text-gray-500 uppercase text-xs font-bold">Available Devices</h3>
-                <div id="port-list" class="space-y-2"></div>
+                <h3 class="text-gray-500 uppercase text-xs font-bold tracking-widest">Active Hardware</h3>
+                <div id="port-list" class="space-y-3"></div>
             </div>
 
             <div class="md:col-span-2 space-y-6">
-                <div class="bg-[#1e1e1e] p-6 rounded-xl border border-gray-800 shadow-2xl">
+                <div class="bg-[#1a1d23] p-6 rounded-xl border border-gray-800 shadow-2xl">
                     <div class="flex justify-between mb-4">
-                        <h2 id="summary-text" class="text-xl font-bold text-gray-400 text-blue-400">Ready to Test...</h2>
-                        <div id="coverage-val" class="text-xs text-blue-500 font-bold border border-blue-900 px-2 py-1 rounded">Coverage: 94%</div>
+                        <h2 id="summary-text" class="text-xl font-bold text-gray-400 uppercase tracking-tighter">Ready...</h2>
+                        <div class="text-[10px] text-blue-500 font-bold border border-blue-900 px-3 py-1 rounded uppercase" id="mode-tag">MODE: IDLE</div>
                     </div>
                     
                     <div class="flex gap-4 mb-6">
-                        <div class="flex-1 bg-black/40 p-3 rounded border border-gray-800 text-center">
-                            <div class="text-[10px] text-gray-500 uppercase mb-1">Unit</div>
-                            <div id="unit-pill" class="text-gray-600">--</div>
+                        <div class="flex-1 bg-black/40 p-4 rounded border border-gray-800 text-center">
+                            <div class="text-[10px] text-gray-500 uppercase mb-1">Unit Logic</div>
+                            <div id="u-p" class="text-gray-600 font-bold text-sm">--</div>
                         </div>
-                        <div class="flex-1 bg-black/40 p-3 rounded border border-gray-800 text-center">
+                        <div class="flex-1 bg-black/40 p-4 rounded border border-gray-800 text-center">
                             <div class="text-[10px] text-gray-500 uppercase mb-1">Integration</div>
-                            <div id="int-pill" class="text-gray-600">--</div>
+                            <div id="i-p" class="text-gray-600 font-bold text-sm">--</div>
                         </div>
-                        <div class="flex-1 bg-black/40 p-3 rounded border border-gray-800 text-center">
+                        <div class="flex-1 bg-black/40 p-4 rounded border border-gray-800 text-center">
                             <div class="text-[10px] text-gray-500 uppercase mb-1">Regression</div>
-                            <div id="reg-pill" class="text-gray-600">--</div>
+                            <div id="r-p" class="text-gray-600 font-bold text-sm">--</div>
                         </div>
                     </div>
 
-                    <div id="json-viewer" class="terminal text-orange-300">Run a test to see JSON output...</div>
+                    <div id="json-viewer" class="terminal text-orange-300">Run a test to capture response...</div>
                 </div>
 
-                <div class="space-y-2">
-                    <h3 class="text-gray-500 uppercase text-xs font-bold">System Log (Live)</h3>
-                    <div id="log-viewer" class="terminal text-gray-400 opacity-80 h-40"></div>
+                <div class="bg-[#1a1d23] p-4 rounded-xl border border-gray-800">
+                    <h3 class="text-gray-500 uppercase text-[10px] font-bold mb-2">Live System Logs</h3>
+                    <div id="log-viewer" class="text-[11px] text-gray-400 font-mono h-32 overflow-hidden leading-relaxed"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Fetch and Clear Logic
+        async function clearLogs() {
+            if(confirm("Are you sure you want to delete all test history and logs?")) {
+                await fetch('/api/clear_logs', { method: 'DELETE' });
+                document.getElementById('log-viewer').innerText = "Logs cleared.";
+                document.getElementById('json-viewer').innerText = "Test history deleted.";
+                document.getElementById('summary-text').innerText = "Ready...";
+                ['u-p','i-p','r-p'].forEach(id => {
+                    document.getElementById(id).innerText = "--";
+                    document.getElementById(id).className = "text-gray-600 font-bold text-sm";
+                });
+            }
+        }
+
         async function fetchPorts() {
             const res = await fetch('/api/scan');
             const data = await res.json();
             document.getElementById('port-list').innerHTML = data.map(p => `
-                <div class="bg-[#252525] p-4 rounded-lg flex justify-between items-center border border-gray-800 hover:border-blue-900 transition group">
-                    <span class="text-sm font-medium text-gray-300">${p.device}</span>
-                    <button onclick="runTest('${p.device}')" class="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-400 transition">Execute Suite</button>
+                <div class="bg-[#252a33] p-4 rounded-lg border border-gray-800 flex flex-col gap-3">
+                    <div>
+                        <div class="text-sm font-bold text-blue-400">${p.device}</div>
+                        <div class="text-[10px] text-gray-500">${p.type} detected</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="runTest('${p.device}', 'STANDARD')" class="flex-1 bg-blue-600 text-white text-[10px] font-bold py-2 rounded">EXECUTE SUITE</button>
+                        <button onclick="runTest('${p.device}', 'LOOPBACK')" class="flex-1 bg-orange-700/20 text-orange-500 border border-orange-700 text-[10px] font-bold py-2 rounded">LOOPBACK</button>
+                    </div>
                 </div>
             `).join('');
         }
 
-        async function runTest(port) {
-            const jsonView = document.getElementById('json-viewer');
-            jsonView.innerHTML = `> Initiating Full Firmware Suite on ${port}...\n> Checking Handshakes...\n> Validating Regression Builds...`;
+        async function runTest(port, mode) {
+            document.getElementById('mode-tag').innerText = `MODE: ${mode}`;
+            document.getElementById('summary-text').innerText = "TESTING...";
             
-            await fetch(`/api/test?port=${encodeURIComponent(port)}`, {method:'POST'});
+            await fetch(`/api/test?port=${encodeURIComponent(port)}&mode=${mode}`, {method:'POST'});
             
             const res = await fetch('/api/latest_report');
-            const data = await res.json();
+            const d = await res.json();
 
-            document.getElementById('summary-text').innerText = data.summary;
-            document.getElementById('summary-text').className = `text-xl font-bold ${data.overall_status === 'PASS' ? 'text-green-500' : 'text-red-500'}`;
+            document.getElementById('summary-text').innerText = d.overall_status === 'PASS' ? "FIRMWARE OK" : "VALIDATION FAILED";
+            document.getElementById('summary-text').className = `text-xl font-bold ${d.overall_status === 'PASS' ? 'text-green-500' : 'text-red-500'}`;
             
-            updatePill('unit-pill', data.categories.unit);
-            updatePill('int-pill', data.categories.integration);
-            updatePill('reg-pill', data.categories.regression);
+            setPill('u-p', d.categories.unit);
+            setPill('i-p', d.categories.integration);
+            setPill('r-p', d.categories.regression);
 
-            jsonView.innerHTML = JSON.stringify(data, null, 4);
-            updateLogs();
+            document.getElementById('json-viewer').innerText = JSON.stringify(d, null, 4);
         }
 
-        function updatePill(id, status) {
+        function setPill(id, status) {
             const el = document.getElementById(id);
             el.innerText = status;
-            el.className = status === 'PASS' ? 'text-green-400 font-bold' : 'text-red-500 font-bold';
+            el.className = `font-bold text-sm ${status === 'PASS' ? 'text-green-400' : 'text-red-500'}`;
         }
 
-        async function updateLogs() {
-            const res = await fetch('/api/system_logs');
-            document.getElementById('log-viewer').innerText = await res.text();
-        }
-
-        async function clearLogs() {
-            if(confirm("Wipe logs?")) { await fetch('/api/clear_logs', {method:'DELETE'}); location.reload(); }
-        }
+        setInterval(async () => {
+            try {
+                const res = await fetch('/api/system_logs');
+                document.getElementById('log-viewer').innerText = await res.text();
+            } catch(e) {}
+        }, 2000);
 
         fetchPorts();
-        setInterval(updateLogs, 3000);
     </script>
 </body>
 </html>
