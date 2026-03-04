@@ -1,22 +1,25 @@
 #!/bin/bash
 
 echo "------------------------------------------"
-echo " Starting UART Hardware Automation Tool"
+echo " UART Hardware Automation - Secure Boot"
 echo "------------------------------------------"
 
-source venv/bin/activate
+# Ensure venv is active (optional, remove if not using venv)
+# source venv/bin/activate
+
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 mkdir -p logs
 
+echo "[1/3] Running Regression Suite + Coverage Report..."
+# Generates a coverage report in the terminal
+pytest --cov=app tests/ --cov-report=term-missing
+
+echo "[2/3] Checking Port Permissions..."
 if groups | grep -q "\bdialout\b"; then
     echo " Permissions: OK"
 else
-    echo "Adding user to dialout group..."
-    sudo usermod -a -G dialout $USER
+    echo " Warning: User not in 'dialout' group. Hardware access may fail."
 fi
 
-echo " Running diagnostic tests..."
-pytest tests/test_uart.py
-
-echo " Launching Dashboard at http://127.0.0.1:8000"
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+echo "[3/3] Launching Dashboard..."
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

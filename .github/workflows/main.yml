@@ -1,7 +1,9 @@
 name: UART Tool Automation
+
 on: [push]
+
 jobs:
-  test:
+  test_and_coverage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -9,9 +11,16 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - name: Install
-        run: pip install fastapi uvicorn pyserial pytest
-      - name: Run Tests
+      - name: Install Dependencies
+        run: |
+          pip install fastapi uvicorn pyserial pytest pytest-cov
+      - name: Run Full Validation Suite
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)
-          pytest tests/
+          # Runs all tests and verifies reliability coverage
+          pytest --cov=app tests/ --cov-report=xml
+      - name: Upload Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: regression-report
+          path: coverage.xml
