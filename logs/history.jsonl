@@ -1,1 +1,1 @@
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-04 17:40:00", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "regression": "PASS"}}
+{"port": "/dev/ttyUSB0", "timestamp": "2026-03-11 12:17:36", "overall_status": "FAIL", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
