@@ -33,6 +33,7 @@ class UARTManager:
         self.logger.info("Log System Initialized.")
 
     def validate_logic(self, response, expected):
+        """Helper to compare strings with normalization"""
         if not response: return False
         return str(response).strip().upper() == str(expected).strip().upper()
 
@@ -45,6 +46,7 @@ class UARTManager:
         return self.run_full_suite(port)
 
     def run_full_suite(self, port):
+        # Initialize with FAIL by default
         report = {
             "port": port,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -66,12 +68,12 @@ class UARTManager:
         else:
             ser = None
             try:
-                # 1. Unit Test
+                # 1. UNIT TEST: Port Opening
                 ser = serial.Serial(port, baudrate=9600, timeout=1.0)
                 report["categories"]["unit"] = "PASS"
                 self.logger.info(f"[{port}] UNIT: Port Opened successfully.")
 
-                # 2. Loopback Test
+                # 2. LOOPBACK TEST: Physical Data Check
                 test_val = b"PING"
                 ser.write(test_val)
                 time.sleep(0.1)
@@ -80,7 +82,7 @@ class UARTManager:
                     report["categories"]["loopback"] = "PASS"
                     self.logger.info(f"[{port}] LOOPBACK: PASS")
 
-                # 3. Integration Test
+                # 3. INTEGRATION TEST: Command Handshake
                 ser.reset_input_buffer()
                 ser.write(b"VER?\r\n")
                 time.sleep(0.3)
@@ -89,28 +91,29 @@ class UARTManager:
                     report["categories"]["integration"] = "PASS"
                     self.logger.info(f"[{port}] INTEGRATION: HW Responded with '{hw_resp}'")
 
-                # 4. STRESS TEST (Improved for Hardware Stability)
+                # 4. STRESS TEST: High-Frequency Load Test
+                
                 self.logger.info(f"[{port}] STRESS: Starting 50-packet burst...")
                 success_count = 0
-                ser.reset_input_buffer() # Clear buffer before starting
+                ser.reset_input_buffer()
                 
                 for i in range(50):
-                    packet = f"S{i}\n".encode() # Shorter packet to prevent overflow
+                    packet = f"S{i}\n".encode()
                     ser.write(packet)
-                    
-                    # Wait 30ms (up from 10ms) to let slow hardware process
-                    time.sleep(0.03) 
-                    
+                    time.sleep(0.03) # 30ms delay for stability
                     if ser.in_waiting > 0:
-                        ser.read_all() # Clear the echo/response from buffer
+                        ser.read_all()
                         success_count += 1
                 
-                # Lowered pass threshold to 80% (40/50) for high-latency USB bridges
                 if success_count >= 40:
                     report["categories"]["stress"] = "PASS"
                     self.logger.info(f"[{port}] STRESS: PASS ({success_count}/50 packets)")
                 else:
                     self.logger.error(f"[{port}] STRESS: FAIL (Only {success_count}/50 packets acknowledged)")
+
+                # FINAL EVALUATION: Flip overall status to PASS if all categories passed
+                if all(status == "PASS" for status in report["categories"].values()):
+                    report["overall_status"] = "PASS"
 
             except Exception as e:
                 self.logger.error(f"[{port}] CRITICAL ERROR: {str(e)}")
@@ -118,6 +121,7 @@ class UARTManager:
                 if ser and ser.is_open:
                     ser.close()
 
+        # Save result to history file
         with open(self.history_file, "a") as f:
             f.write(json.dumps(report) + "\n")
             
