@@ -23,18 +23,17 @@ class UARTManager:
         self.logger.setLevel(logging.INFO)
         if self.logger.hasHandlers():
             self.logger.handlers.clear()
-
         fmt = logging.Formatter('%(asctime)s - %(message)s')
         sh = logging.StreamHandler(sys.stdout)
         sh.setFormatter(fmt)
         self.logger.addHandler(sh)
-
         fh = logging.FileHandler(self.log_path, mode='a')
         fh.setFormatter(fmt)
         self.logger.addHandler(fh)
         self.logger.info("Log System Initialized.")
 
     def validate_logic(self, response, expected):
+        """Helper to compare strings with normalization"""
         if not response: return False
         return str(response).strip().upper() == str(expected).strip().upper()
 
@@ -47,7 +46,7 @@ class UARTManager:
         return self.run_full_suite(port)
 
     def run_full_suite(self, port):
-        # Default status is now FAIL until proven otherwise
+        # Initialize with FAIL by default
         report = {
             "port": port,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -55,8 +54,8 @@ class UARTManager:
             "categories": {
                 "unit": "FAIL",
                 "loopback": "FAIL",
-                "integration": "PASS", # Logic check (Simulator always passes this)
-                "regression": "PASS"
+                "integration": "FAIL",
+                "stress": "FAIL"
             }
         }
         
@@ -69,26 +68,51 @@ class UARTManager:
         else:
             ser = None
             try:
-                # 1. Unit Test: Open Port
-                ser = serial.Serial(port, baudrate=9600, timeout=0.5)
+                # 1. UNIT TEST: Port Opening
+                ser = serial.Serial(port, baudrate=9600, timeout=1.0)
                 report["categories"]["unit"] = "PASS"
                 self.logger.info(f"[{port}] UNIT: Port Opened successfully.")
 
-                # 2. Loopback Test: Physical Write/Read check
+                # 2. LOOPBACK TEST: Physical Data Check
                 test_val = b"PING"
                 ser.write(test_val)
-                time.sleep(0.1) # Wait for hardware buffer
+                time.sleep(0.1)
                 received = ser.read(len(test_val))
-                
                 if received == test_val:
                     report["categories"]["loopback"] = "PASS"
-                    self.logger.info(f"[{port}] LOOPBACK: PASS (Data Echoed)")
-                else:
-                    report["categories"]["loopback"] = "FAIL"
-                    self.logger.error(f"[{port}] LOOPBACK: FAIL (Sent {test_val}, Received {received})")
+                    self.logger.info(f"[{port}] LOOPBACK: PASS")
 
-                # Update overall status based on critical checks
-                if report["categories"]["unit"] == "PASS" and report["categories"]["loopback"] == "PASS":
+                # 3. INTEGRATION TEST: Command Handshake
+                ser.reset_input_buffer()
+                ser.write(b"VER?\r\n")
+                time.sleep(0.3)
+                hw_resp = ser.read_all().decode(errors='ignore').strip()
+                if hw_resp:
+                    report["categories"]["integration"] = "PASS"
+                    self.logger.info(f"[{port}] INTEGRATION: HW Responded with '{hw_resp}'")
+
+                # 4. STRESS TEST: High-Frequency Load Test
+                
+                self.logger.info(f"[{port}] STRESS: Starting 50-packet burst...")
+                success_count = 0
+                ser.reset_input_buffer()
+                
+                for i in range(50):
+                    packet = f"S{i}\n".encode()
+                    ser.write(packet)
+                    time.sleep(0.03) # 30ms delay for stability
+                    if ser.in_waiting > 0:
+                        ser.read_all()
+                        success_count += 1
+                
+                if success_count >= 40:
+                    report["categories"]["stress"] = "PASS"
+                    self.logger.info(f"[{port}] STRESS: PASS ({success_count}/50 packets)")
+                else:
+                    self.logger.error(f"[{port}] STRESS: FAIL (Only {success_count}/50 packets acknowledged)")
+
+                # FINAL EVALUATION: Flip overall status to PASS if all categories passed
+                if all(status == "PASS" for status in report["categories"].values()):
                     report["overall_status"] = "PASS"
 
             except Exception as e:
@@ -97,28 +121,18 @@ class UARTManager:
                 if ser and ser.is_open:
                     ser.close()
 
-        # Detailed Category Logging for Terminal
-        for cat, status in report["categories"].items():
-            self.logger.info(f"[{port}] {cat.upper()} Status: {status}")
-
+        # Save result to history file
         with open(self.history_file, "a") as f:
             f.write(json.dumps(report) + "\n")
             
         return report
 
     def get_history(self):
-        if not os.path.exists(self.history_file): 
-            return []
-        
+        if not os.path.exists(self.history_file): return []
         history = []
         with open(self.history_file, "r") as f:
             for line in f:
-                if not line.strip():
-                    continue
-                try:
-                    history.append(json.loads(line))
-                except json.JSONDecodeError:
-                    # Skip corrupted lines instead of crashing the whole app
-                    self.logger.warning("Skipping corrupted log line.")
-                    continue
+                if not line.strip(): continue
+                try: history.append(json.loads(line))
+                except: continue
         return history
