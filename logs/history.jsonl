@@ -1,12 +1,4 @@
-{"port": "/dev/ttyUSB0", "timestamp": "2026-03-11 14:36:30", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-12 11:07:33", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-12 11:07:33", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-12 11:07:42", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-12 11:07:48", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-12 11:18:03", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-12 11:18:03", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-12 11:25:27", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-12 11:25:27", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-12 11:27:30", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-13 14:50:23", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-13 14:50:23", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
+{"port": "SIMULATOR_PORT", "timestamp": "2026-03-16 10:08:45", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
+{"port": "SIMULATOR_PORT", "timestamp": "2026-03-16 10:08:45", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
+{"port": "/dev/ttyUSB0", "timestamp": "2026-03-16 10:08:57", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
+{"port": "/dev/ttyUSB0", "timestamp": "2026-03-16 10:09:07", "overall_status": "FAIL", "categories": {"unit": "PASS", "loopback": "FAIL", "integration": "FAIL", "stress": "FAIL"}}
