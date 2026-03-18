@@ -1,5 +1,21 @@
+# --- Python & Environment ---
 venv/
 __pycache__/
-logs/*.log
-logs/*.json
+*.pyc
+
+# --- Logs & Test History ---
+# We use .jsonl (JSON Lines), so we ignore the whole folder to be safe
+logs/
+*.log
+*.json
+*.jsonl
+
+# --- Testing & Coverage ---
 .pytest_cache/
+.coverage
+.cache/
+htmlcov/
+
+# --- System & Accidental Files ---
+.DS_Store
+'\'
