@@ -3,6 +3,17 @@ echo "------------------------------------------"
 echo " UART AUTOMATION - SYSTEM PRE-FLIGHT"
 echo "------------------------------------------"
 
+# --- NEW: AUTO VENV ACTIVATION ---
+if [ -d "venv" ]; then
+    echo "[0/4] Activating Virtual Environment..."
+    source venv/bin/activate
+    # Deactivate venv automatically when the script exits or is killed (Ctrl+C)
+    trap deactivate EXIT
+else
+    echo "[!] Warning: venv folder not found. Running with system python."
+fi
+# ---------------------------------
+
 # 1. Fix Permissions Automatically
 echo "[1/4] Checking USB Permissions..."
 sudo usermod -a -G dialout $USER
