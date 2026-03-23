@@ -10,10 +10,19 @@ manager = UARTManager()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if os.path.exists(manager.history_file):
-        os.remove(manager.history_file)
-    if os.path.exists(manager.log_path):
-        os.remove(manager.log_path)
+    """
+    Completely minimal startup — only attaches the file handler.
+    No flag files, no startup messages, no test triggers.
+    The double 'Log System Initialized.' was caused by a race condition:
+    two uvicorn workers checking os.path.exists() at the same millisecond
+    before either had written the flag file.
+
+    Solution: remove the flag entirely. Just attach the handler and write
+    one log line unconditionally. Two workers = two lines is acceptable
+    and harmless. The real bug (SIMULATOR_PORT auto-running) is NOT here —
+    it is in run.sh running pytest before uvicorn starts, and pytest
+    instantiates UARTManager which calls run_test via test_simulator_execution.
+    """
     manager.reset_file_handler()
     manager.log_startup()
     yield
@@ -34,23 +43,11 @@ def scan():
 
 @app.post("/api/test")
 def test(port: str):
-    """Single port — unchanged, still runs sequentially."""
     return manager.run_full_suite(port)
 
 
 @app.post("/api/test_all")
 async def test_all():
-    """
-    Changed from 'def' to 'async def'.
-
-    Old behaviour: for-loop calling run_full_suite() one port at a time —
-    the entire server blocked until every port finished sequentially.
-
-    New behaviour: calls run_all_parallel() which uses ThreadPoolExecutor
-    + asyncio.gather to run all ports simultaneously in separate threads.
-    The event loop stays free so log polling and other requests still work
-    while tests are running. Total time = slowest single port, not the sum.
-    """
     ports = manager.list_ports()
     results = await manager.run_all_parallel(ports)
     return {"status": "Complete", "count": len(results)}
@@ -71,11 +68,14 @@ def logs():
 
 @app.delete("/api/clear_logs")
 def clear():
-    if os.path.exists(manager.history_file):
-        os.remove(manager.history_file)
-    if os.path.exists(manager.log_path):
-        os.remove(manager.log_path)
+    """Wipes ALL files in logs/ — both system.log and history.jsonl."""
+    if os.path.isdir(manager.log_dir):
+        for filename in os.listdir(manager.log_dir):
+            filepath = os.path.join(manager.log_dir, filename)
+            if os.path.isfile(filepath):
+                os.remove(filepath)
     manager.reset_file_handler()
+    manager.log_startup()
     return {"status": "success"}
 
 
