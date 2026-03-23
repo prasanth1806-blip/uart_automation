@@ -65,6 +65,7 @@
     </div>
 
     <script>
+        // ─── SCAN: detects ports only, never triggers a test ─────────────────
         async function scan() {
             const res = await fetch('/api/scan');
             const data = await res.json();
@@ -72,50 +73,69 @@
                 data.map(p => `<button class="btn-run" onclick="runTest('${p.device}')">▶ ${p.device}</button>`).join('');
         }
 
-        async function updateTerminals() {
-            const logText = await (await fetch('/api/system_logs')).text();
+        // ─── LOG POLLING: smart scroll — only follows if user is at the bottom ─
+        async function pollLogs() {
             const logBox = document.getElementById('log-view');
-            logBox.textContent = logText || "No logs available...";
-            logBox.scrollTop = logBox.scrollHeight;
 
+            // Check if user is at (or within 8px of) the bottom BEFORE updating content.
+            // If they've scrolled up to read, we leave their position alone.
+            const isAtBottom = logBox.scrollHeight - logBox.scrollTop - logBox.clientHeight < 8;
+
+            const logText = await (await fetch('/api/system_logs')).text();
+            logBox.textContent = logText || "No logs available...";
+
+            // Only auto-scroll if user was already at the bottom
+            if (isAtBottom) {
+                logBox.scrollTop = logBox.scrollHeight;
+            }
+        }
+
+        // ─── HISTORY: only called after a test explicitly completes ──────────
+        async function refreshHistory() {
             const histData = await (await fetch('/api/history')).json();
             document.getElementById('json-view').textContent =
-                JSON.stringify(histData, null, 2);
+                histData.length > 0
+                    ? JSON.stringify(histData, null, 2)
+                    : "No test results yet.";
         }
 
+        // ─── RUN SINGLE PORT ──────────────────────────────────────────────────
         async function runTest(port) {
-            await fetch(`/api/test?port=${encodeURIComponent(port)}`, {method:'POST'});
-            updateTerminals();
+            await fetch(`/api/test?port=${encodeURIComponent(port)}`, { method: 'POST' });
+            await pollLogs();
+            await refreshHistory();
         }
 
+        // ─── RUN ALL PORTS ────────────────────────────────────────────────────
         async function runAll() {
-            await fetch('/api/test_all', {method:'POST'});
-            updateTerminals();
+            await fetch('/api/test_all', { method: 'POST' });
+            await pollLogs();
+            await refreshHistory();
         }
 
+        // ─── WIPE LOGS ────────────────────────────────────────────────────────
         async function clearAll() {
-            if(confirm("Are you sure you want to wipe all history?")) {
-                await fetch('/api/clear_logs', {method:'DELETE'});
-                updateTerminals();
+            if (confirm("Are you sure you want to wipe all history?")) {
+                await fetch('/api/clear_logs', { method: 'DELETE' });
+                document.getElementById('json-view').textContent = "No tests run yet. Click RUN ALL or a port button to start.";
+                await pollLogs();
             }
         }
 
         function downloadLogs() {
             const format = prompt("Download logs as: log or txt?", "log");
-            if(!format) return;
-            downloadFile(document.getElementById('log-view').textContent,
-                `system_logs.${format}`);
+            if (!format) return;
+            downloadFile(document.getElementById('log-view').textContent, `system_logs.${format}`);
         }
 
         function downloadJSON() {
             const format = prompt("Download history as: json or txt?", "json");
-            if(!format) return;
-            downloadFile(document.getElementById('json-view').textContent,
-                `test_history.${format}`);
+            if (!format) return;
+            downloadFile(document.getElementById('json-view').textContent, `test_history.${format}`);
         }
 
         function downloadFile(content, filename) {
-            const blob = new Blob([content], {type: 'text/plain'});
+            const blob = new Blob([content], { type: 'text/plain' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = filename;
@@ -123,8 +143,10 @@
             URL.revokeObjectURL(a.href);
         }
 
-        setInterval(updateTerminals, 2000);
+        // ─── STARTUP ──────────────────────────────────────────────────────────
+        setInterval(pollLogs, 2000);
         scan();
+        pollLogs();
     </script>
 </body>
 </html>

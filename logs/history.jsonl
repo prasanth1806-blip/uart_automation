@@ -1,4 +1,1 @@
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-16 10:08:45", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "SIMULATOR_PORT", "timestamp": "2026-03-16 10:08:45", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "/dev/ttyUSB0", "timestamp": "2026-03-16 10:08:57", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
-{"port": "/dev/ttyUSB0", "timestamp": "2026-03-16 10:09:07", "overall_status": "FAIL", "categories": {"unit": "PASS", "loopback": "FAIL", "integration": "FAIL", "stress": "FAIL"}}
+{"port": "/dev/ttyUSB0", "timestamp": "2026-03-23 11:00:25", "overall_status": "PASS", "categories": {"unit": "PASS", "loopback": "PASS", "integration": "PASS", "stress": "PASS"}}
