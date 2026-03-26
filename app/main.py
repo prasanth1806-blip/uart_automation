@@ -63,7 +63,7 @@ def logs():
     if not os.path.exists(manager.log_path):
         return "Waiting for logs..."
     with open(manager.log_path, "r") as f:
-        return "".join(f.readlines()[-100:])
+        return "".join(f.readlines()[-10000:])
 
 
 @app.delete("/api/clear_logs")

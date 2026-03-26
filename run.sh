@@ -1,4 +1,5 @@
 #!/bin/bash
+ulimit -n 1048576
 echo "------------------------------------------"
 echo " UART AUTOMATION - SYSTEM PRE-FLIGHT"
 echo "------------------------------------------"
